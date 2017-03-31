@@ -176,13 +176,14 @@ endmacro()
 ##############################################################################
 
 set(LOG_FILE "gcda.log")
+file(WRITE "${LOG_FILE}" "")
 macro(log _TEXT)
-    file(WRITE "${LOG_FILE}" _TEXT)
+    file(APPEND "${LOG_FILE}" "${_TEXT}\n")
 endmacro()
  
 # Get the coverage data.
 file(GLOB_RECURSE GCDA_FILES "${COV_PATH}/*.gcda")
-message("GCDA files:")
+log("GCDA files:")
 
 # Get a list of all the object directories needed by gcov
 # (The directories the .gcda files and .o files are found in)
@@ -209,8 +210,9 @@ foreach(GCDA ${GCDA_FILES})
 	execute_process(
 		COMMAND ${GCOV_EXECUTABLE} -p -o ${GCDA_DIR} ${GCDA}
 		WORKING_DIRECTORY ${COV_PATH}
-        OUTPUT_FILE "${LOG_FILE}"
+        OUTPUT_VARIABLE OUT
 	)
+    log("${OUT}")
 endforeach()
 
 # TODO: Make these be absolute path
@@ -257,7 +259,7 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 	# ->
 	# /path/to/project/root/subdir/the_file.c
 	get_source_path_from_gcov_filename(GCOV_SRC_PATH ${GCOV_FILE})
-#    message("========== original file path: ${GCOV_SRC_PATH}")
+#    log("original file path: ${GCOV_SRC_PATH}")
     if(${GCOV_SRC_PATH} MATCHES "^\\/.*")
         set(GCOV_SRC_ABS_PATH "${GCOV_SRC_PATH}")
     else()
@@ -266,9 +268,9 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
         endif()
         get_filename_component(GCOV_SRC_ABS_PATH "${GCOV_SRC_PATH}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
     endif()
-#    message("========== absolute file path: ${GCOV_SRC_ABS_PATH}")
+#    log("absolute file path: ${GCOV_SRC_ABS_PATH}")
     file(RELATIVE_PATH GCOV_SRC_REL_PATH "${PROJECT_ROOT}" "${GCOV_SRC_ABS_PATH}")
-#    message("========== relative file path: ${GCOV_SRC_REL_PATH}")
+#    log("relative file path: ${GCOV_SRC_REL_PATH}")
 
 	# Is this in the list of source files?
 	# TODO: We want to match against relative path filenames from the source file root...
@@ -310,8 +312,8 @@ set(SRC_FILE_TEMPLATE
   }"
 )
 
-message("\nGenerate JSON for files:")
-message("=========================")
+log("\nGenerate JSON for files:")
+log("=========================")
 
 set(JSON_GCOV_FILES "[")
 
@@ -324,7 +326,7 @@ foreach (GCOV_FILE ${GCOV_FILES})
 	# The new coveralls API doesn't need the entire source (Yay!)
 	# However, still keeping that part for now. Will cleanup in the future.
 	file(MD5 "${GCOV_SRC_PATH}" GCOV_CONTENTS_MD5)
-	message("MD5: ${GCOV_SRC_PATH} = ${GCOV_CONTENTS_MD5}")
+	log("MD5: ${GCOV_SRC_PATH} = ${GCOV_CONTENTS_MD5}")
 
 	# Loads the gcov file as a list of lines.
 	# (We first open the file and replace all occurences of [] with _
@@ -433,7 +435,7 @@ foreach (GCOV_FILE ${GCOV_FILES})
 		math(EXPR GCOV_LINE_COUNT "${GCOV_LINE_COUNT}+1")
 	endforeach()
 
-	message("${GCOV_LINE_COUNT} of ${LINE_COUNT} lines read!")
+	log("${GCOV_LINE_COUNT} of ${LINE_COUNT} lines read!")
 
 	# Advanced way of removing the trailing comma in the JSON array.
 	# "[1, 2, 3, " -> "[1, 2, 3"
@@ -443,7 +445,7 @@ foreach (GCOV_FILE ${GCOV_FILES})
 	set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}]")
 
 	# Generate the final JSON for this file.
-	message("Generate JSON for file: ${GCOV_SRC_REL_PATH}...")
+	log("Generate JSON for file: ${GCOV_SRC_REL_PATH}...")
 	string(CONFIGURE ${SRC_FILE_TEMPLATE} FILE_JSON)
 
 	set(JSON_GCOV_FILES "${JSON_GCOV_FILES}${FILE_JSON}, ")
@@ -479,7 +481,8 @@ foreach(NOT_COVERED_SRC ${COVERAGE_SRCS_REMAINING})
 	set(GCOV_FILE_COVERAGE "${GCOV_FILE_COVERAGE}]")
 
 	# Generate the final JSON for this file.
-	message("Generate JSON for non-gcov file: ${NOT_COVERED_SRC}...")
+	log("Generate JSON for non-gcov file: ${NOT_COVERED_SRC}...")
+    message("File not covered by gcov: ${NOT_COVERED_SRC}")
 	string(CONFIGURE ${SRC_FILE_TEMPLATE} FILE_JSON)
 	set(JSON_GCOV_FILES "${JSON_GCOV_FILES}${FILE_JSON}, ")
 endforeach()
@@ -489,11 +492,10 @@ string(REGEX REPLACE ",[ ]*$" "" JSON_GCOV_FILES ${JSON_GCOV_FILES})
 set(JSON_GCOV_FILES "${JSON_GCOV_FILES}]")
 
 # Generate the final complete JSON!
-message("Generate final JSON...")
+#message("Generate final JSON...")
 string(CONFIGURE ${JSON_TEMPLATE} JSON)
 
 file(WRITE "${COVERALLS_OUTPUT_FILE}" "${JSON}")
-message("###########################################################################")
-message("Generated coveralls JSON containing coverage data:")
-message("${COVERALLS_OUTPUT_FILE}")
-message("###########################################################################")
+#message("###########################################################################")
+message("Generated coveralls JSON containing coverage data: ${COVERALLS_OUTPUT_FILE}")
+#message("###########################################################################")
