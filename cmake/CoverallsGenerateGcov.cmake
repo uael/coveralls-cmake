@@ -238,7 +238,7 @@ file(GLOB ALL_GCOV_FILES ${COV_PATH}/*.gcov)
 #				/path/to/project/root/build/#path#to#project#root#subdir#the_file.c.gcov
 #
 set(GCOV_FILES "")
-message("Look in coverage sources: ${COVERAGE_SRCS}")
+#message("Look in coverage sources: ${COVERAGE_SRCS}")
 message("\nFilter out unwanted GCOV files:")
 message("===============================")
 
