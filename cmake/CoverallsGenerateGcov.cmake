@@ -175,6 +175,11 @@ endmacro()
 
 ##############################################################################
 
+set(LOG_FILE "gcda.log")
+macro(log _TEXT)
+    file(WRITE "${LOG_FILE}" _TEXT)
+endmacro()
+ 
 # Get the coverage data.
 file(GLOB_RECURSE GCDA_FILES "${COV_PATH}/*.gcda")
 message("GCDA files:")
@@ -183,8 +188,8 @@ message("GCDA files:")
 # (The directories the .gcda files and .o files are found in)
 # and run gcov on those.
 foreach(GCDA ${GCDA_FILES})
-	message("Process: ${GCDA}")
-	message("------------------------------------------------------------------------------")
+	log("Process: ${GCDA}")
+	log("------------------------------------------------------------------------------")
 	get_filename_component(GCDA_DIR ${GCDA} PATH)
 
 	#
@@ -204,6 +209,7 @@ foreach(GCDA ${GCDA_FILES})
 	execute_process(
 		COMMAND ${GCOV_EXECUTABLE} -p -o ${GCDA_DIR} ${GCDA}
 		WORKING_DIRECTORY ${COV_PATH}
+        OUTPUT_FILE "${LOG_FILE}"
 	)
 endforeach()
 
@@ -238,9 +244,9 @@ file(GLOB ALL_GCOV_FILES ${COV_PATH}/*.gcov)
 #				/path/to/project/root/build/#path#to#project#root#subdir#the_file.c.gcov
 #
 set(GCOV_FILES "")
-#message("Look in coverage sources: ${COVERAGE_SRCS}")
-message("\nFilter out unwanted GCOV files:")
-message("===============================")
+log("Look in coverage sources: ${COVERAGE_SRCS}")
+log("\nFilter out unwanted GCOV files:")
+log("===============================")
 
 set(COVERAGE_SRCS_REMAINING ${COVERAGE_SRCS})
 
@@ -269,7 +275,7 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 	list(FIND COVERAGE_SRCS ${GCOV_SRC_PATH} WAS_FOUND)
 
 	if (NOT WAS_FOUND EQUAL -1)
-		message("YES: ${GCOV_FILE}")
+		log("YES: ${GCOV_FILE}")
 		list(APPEND GCOV_FILES ${GCOV_FILE})
 
 		# We remove it from the list, so we don't bother searching for it again.
@@ -277,7 +283,7 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 		# have coverage data generated from them (no lines are covered).
 		list(REMOVE_ITEM COVERAGE_SRCS_REMAINING ${GCOV_SRC_PATH})
 	else()
-		message("NO:  ${GCOV_FILE}")
+		log("NO:  ${GCOV_FILE}")
 	endif()
 endforeach()
 
