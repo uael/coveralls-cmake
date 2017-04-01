@@ -279,7 +279,7 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 
 	# Is this in the list of source files?
 	# TODO: We want to match against relative path filenames from the source file root...
-	list(FIND COVERAGE_SRCS ${GCOV_SRC_PATH} WAS_FOUND)
+	list(FIND COVERAGE_SRCS_REMAINING ${GCOV_SRC_ABS_PATH} WAS_FOUND)
 
 	if (NOT WAS_FOUND EQUAL -1)
 		log("YES: ${GCOV_FILE}")
@@ -295,8 +295,8 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
         endif()
 	else()
 		log("NO:  ${GCOV_FILE}")
-        log("item to find: ${GCOV_SRC_PATH}")
-        log("items in list: ${COVERAGE_SRCS}")
+#        log("item to find: ${GCOV_SRC_PATH}")
+#        log("items in list: ${COVERAGE_SRCS}")
         log("items remaining: ${COVERAGE_SRCS_REMAINING}")
 	endif()
 endforeach()
