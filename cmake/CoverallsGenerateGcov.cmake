@@ -333,9 +333,9 @@ set(JSON_GCOV_FILES "[")
 
 # Read the GCOV files line by line and get the coverage data.
 foreach (GCOV_FILE ${GCOV_FILES})
-message("GCOV FILE: ${GCOV_FILE}")
+log("GCOV FILE: ${GCOV_FILE}")
 	get_source_path_from_gcov_filename(GCOV_SRC_PATH ${GCOV_FILE})
-message("ABS PATH: ${GCOV_SRC_PATH}")
+log("ABS PATH: ${GCOV_SRC_PATH}")
 	file(RELATIVE_PATH GCOV_SRC_REL_PATH "${PROJECT_ROOT}" "${GCOV_SRC_PATH}")
 
 	# The new coveralls API doesn't need the entire source (Yay!)
