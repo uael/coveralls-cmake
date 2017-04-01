@@ -259,18 +259,23 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 	# ->
 	# /path/to/project/root/subdir/the_file.c
 	get_source_path_from_gcov_filename(GCOV_SRC_PATH ${GCOV_FILE})
-#    log("original file path: ${GCOV_SRC_PATH}")
+    log("original file path: ${GCOV_SRC_PATH}")
     if(${GCOV_SRC_PATH} MATCHES "^\\/.*")
         set(GCOV_SRC_ABS_PATH "${GCOV_SRC_PATH}")
+        if(${GCOV_SRC_PATH} MATCHES "^\\/usr\\/.*")
+            file(REMOVE "${GCOV_FILE}")
+            log("Removing system file from list: ${GCOV_FILE}")
+            continue()
+        endif()
     else()
         if(${GCOV_SRC_PATH} MATCHES "\\^.*")
             string(REGEX REPLACE "\\^" ".." GCOV_SRC_PATH "${GCOV_SRC_PATH}")
         endif()
         get_filename_component(GCOV_SRC_ABS_PATH "${GCOV_SRC_PATH}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
     endif()
-#    log("absolute file path: ${GCOV_SRC_ABS_PATH}")
+    log("absolute file path: ${GCOV_SRC_ABS_PATH}")
     file(RELATIVE_PATH GCOV_SRC_REL_PATH "${PROJECT_ROOT}" "${GCOV_SRC_ABS_PATH}")
-#    log("relative file path: ${GCOV_SRC_REL_PATH}")
+    log("relative file path: ${GCOV_SRC_REL_PATH}")
 
 	# Is this in the list of source files?
 	# TODO: We want to match against relative path filenames from the source file root...
@@ -284,8 +289,15 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 		# Also files left in COVERAGE_SRCS_REMAINING after this loop ends should
 		# have coverage data generated from them (no lines are covered).
 		list(REMOVE_ITEM COVERAGE_SRCS_REMAINING ${GCOV_SRC_PATH})
+        if(NOT COVERAGE_SRCS_REMAINING)
+            log("All files covered")
+            break()
+        endif()
 	else()
 		log("NO:  ${GCOV_FILE}")
+        log("item to find: ${GCOV_SRC_PATH}")
+        log("items in list: ${COVERAGE_SRCS}")
+        log("items remaining: ${COVERAGE_SRCS_REMAINING}")
 	endif()
 endforeach()
 
