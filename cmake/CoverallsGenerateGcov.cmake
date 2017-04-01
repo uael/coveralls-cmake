@@ -187,9 +187,9 @@ endmacro()
 
 ##############################################################################
 
+set(LOG_FILE "covertage.log")
 file(WRITE "${LOG_FILE}" "")
 macro(log _TEXT)
-    set(LOG_FILE "covertage.log")
     file(APPEND "${LOG_FILE}" "${_TEXT}\n")
 endmacro()
  
