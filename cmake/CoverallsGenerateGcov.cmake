@@ -160,7 +160,8 @@ endif()
 #
 #   /path/to/project/root/subdir/the_file.c
 #
-macro(get_source_path_from_gcov_filename _SRC_FILENAME _GCOV_FILENAME)
+macro(get_source_path_from_gcov_filename _GCOV_SRC_ABS_PATH _GCOV_FILENAME)
+    log("original file: ${_GCOV_FILENAME}")
 
 	# /path/to/project/root/build/#path#to#project#root#subdir#the_file.c.gcov
 	# ->
@@ -170,14 +171,25 @@ macro(get_source_path_from_gcov_filename _SRC_FILENAME _GCOV_FILENAME)
 	# #path#to#project#root#subdir#the_file.c.gcov -> /path/to/project/root/subdir/the_file.c
 	string(REGEX REPLACE "\\.gcov$" "" SRC_FILENAME_TMP ${_GCOV_FILENAME_WEXT})
 	string(REGEX REPLACE "\#" "/" SRC_FILENAME_TMP ${SRC_FILENAME_TMP})
-	set(${_SRC_FILENAME} "${SRC_FILENAME_TMP}")
+
+    log("original file path: ${SRC_FILENAME_TMP}")
+    if(${SRC_FILENAME_TMP} MATCHES "^\\/.*")
+        set(GCOV_SRC_ABS_PATH "${SRC_FILENAME_TMP}")
+    else()
+        if(${SRC_FILENAME_TMP} MATCHES "\\^.*")
+            string(REGEX REPLACE "\\^" ".." SRC_FILENAME_TMP "${SRC_FILENAME_TMP}")
+        endif()
+        get_filename_component(GCOV_SRC_ABS_PATH "${SRC_FILENAME_TMP}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
+    endif()
+    log("absolute file path: ${GCOV_SRC_ABS_PATH}")
+	set(${_GCOV_SRC_ABS_PATH} "${GCOV_SRC_ABS_PATH}")
 endmacro()
 
 ##############################################################################
 
-set(LOG_FILE "gcda.log")
 file(WRITE "${LOG_FILE}" "")
 macro(log _TEXT)
+    set(LOG_FILE "covertage.log")
     file(APPEND "${LOG_FILE}" "${_TEXT}\n")
 endmacro()
  
@@ -258,24 +270,14 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 	# /path/to/project/root/build/#path#to#project#root#subdir#the_file.c.gcov
 	# ->
 	# /path/to/project/root/subdir/the_file.c
-	get_source_path_from_gcov_filename(GCOV_SRC_PATH ${GCOV_FILE})
-    log("original file path: ${GCOV_SRC_PATH}")
-    if(${GCOV_SRC_PATH} MATCHES "^\\/.*")
-        set(GCOV_SRC_ABS_PATH "${GCOV_SRC_PATH}")
-        if(${GCOV_SRC_PATH} MATCHES "^\\/usr\\/.*")
-            file(REMOVE "${GCOV_FILE}")
-            log("Removing system file from list: ${GCOV_FILE}")
-            continue()
-        endif()
-    else()
-        if(${GCOV_SRC_PATH} MATCHES "\\^.*")
-            string(REGEX REPLACE "\\^" ".." GCOV_SRC_PATH "${GCOV_SRC_PATH}")
-        endif()
-        get_filename_component(GCOV_SRC_ABS_PATH "${GCOV_SRC_PATH}" REALPATH BASE_DIR "${CMAKE_BINARY_DIR}")
+	get_source_path_from_gcov_filename(GCOV_SRC_ABS_PATH ${GCOV_FILE})
+    if(${GCOV_SRC_ABS_PATH} MATCHES "^\\/usr\\/.*")
+        file(REMOVE "${GCOV_FILE}")
+        log("Removing system file from list: ${GCOV_FILE}")
+        continue()
     endif()
-    log("absolute file path: ${GCOV_SRC_ABS_PATH}")
-    file(RELATIVE_PATH GCOV_SRC_REL_PATH "${PROJECT_ROOT}" "${GCOV_SRC_ABS_PATH}")
-    log("relative file path: ${GCOV_SRC_REL_PATH}")
+#    file(RELATIVE_PATH GCOV_SRC_REL_PATH "${PROJECT_ROOT}" "${GCOV_SRC_ABS_PATH}")
+#    log("relative file path: ${GCOV_SRC_REL_PATH}")
 
 	# Is this in the list of source files?
 	# TODO: We want to match against relative path filenames from the source file root...
@@ -288,7 +290,7 @@ foreach (GCOV_FILE ${ALL_GCOV_FILES})
 		# We remove it from the list, so we don't bother searching for it again.
 		# Also files left in COVERAGE_SRCS_REMAINING after this loop ends should
 		# have coverage data generated from them (no lines are covered).
-		list(REMOVE_ITEM COVERAGE_SRCS_REMAINING ${GCOV_SRC_PATH})
+		list(REMOVE_ITEM COVERAGE_SRCS_REMAINING ${GCOV_SRC_ABS_PATH})
         if(NOT COVERAGE_SRCS_REMAINING)
             log("All files covered")
             break()
@@ -331,8 +333,9 @@ set(JSON_GCOV_FILES "[")
 
 # Read the GCOV files line by line and get the coverage data.
 foreach (GCOV_FILE ${GCOV_FILES})
-
+message("GCOV FILE: ${GCOV_FILE}")
 	get_source_path_from_gcov_filename(GCOV_SRC_PATH ${GCOV_FILE})
+message("ABS PATH: ${GCOV_SRC_PATH}")
 	file(RELATIVE_PATH GCOV_SRC_REL_PATH "${PROJECT_ROOT}" "${GCOV_SRC_PATH}")
 
 	# The new coveralls API doesn't need the entire source (Yay!)
